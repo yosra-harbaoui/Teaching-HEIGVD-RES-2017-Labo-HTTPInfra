@@ -1,7 +1,7 @@
 <?php
 
-$DYNAMIC_APP = get_env('DYNAMIC_APP');
-$STATIC_APP = get_env('STATIC_APP');
+$DYNAMIC_APP = $_SERVER['DYNAMIC_APP'];
+$STATIC_APP = $_SERVER['STATIC_APP'];
 
 ?>
 
