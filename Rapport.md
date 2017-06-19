@@ -196,4 +196,42 @@ docker kill apache_static
 docker rm apache_static
 docker run -d --name apache_static res/apache_php
 ```
-You can test the new feature, you can use your favorite browser to see the page by looking for `demo.res.ch:8080`
+You can test the new feature, you can use your favorite browser to see the page by looking for `demo.res.ch:8080`.
+
+## Step 5: Dynamic reverse proxy configuration
+
+first, In order to have a dynamic configuration for ower reverse proxy, we had to use `apache2-foreground` script to do not stop the server immediately.
+`apache2-foreground` script was created on the same folder than the Dockerfile. You can see his content [here](https://github.com/yosra-harbaoui/Teaching-HEIGVD-RES-2017-Labo-HTTPInfra/blob/fb-dynamic-configuration/docker-images/apache-reverse-proxy/apache2-foreground). 
+
+Second, we modified ower Dockerfile: 
+```Dockerfile
+FROM php:7.0-apache
+#RUN apt-get update && apt-get install -y vim
+
+COPY templates/ /var/apache2/templates
+COPY apache2-foreground /usr/local/bin/
+COPY conf/ /etc/apache2
+
+RUN a2enmod proxy proxy_http
+RUN a2ensite 000-* 001-*
+```
+
+Third, we created a PHP file for the reverse proxy configuration file.You can see his content [here](https://github.com/yosra-harbaoui/Teaching-HEIGVD-RES-2017-Labo-HTTPInfra/blob/fb-dynamic-configuration/docker-images/apache-reverse-proxy/templates/config-template.php).  
+
+finally, you can test this new feature by :
+
+```new feature
+docker build -t res/apache_rp .
+docker run -e STATIC_APP=172.17.0.2:80 -e DYNAMIC_APP=172.17.0.3:3000 res/apache_rp
+docker run -d --name apache_static res/apache_php
+docker run -d --name express_dynamic res/express_students
+docker run -d -e STATIC_APP=172.17.0.5:80 -e DYNAMIC_APP=172.17.0.8:3000 --name apache_rp -p 8080:80 res/apache_rp
+```
+
+Or, you run the following bash scripts:
+```bash
+./stop.sh
+./build.sh
+./start.sh
+```
+Now, you can use your favorite browser to see the page by looking for `demo.res.ch:8080`.
