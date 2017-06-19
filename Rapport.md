@@ -151,5 +151,49 @@ Host : demo.res.ch
 ```
 
 If you want to use this on your browser, you have to add `127.0.0.1 demo.res.ch --> http://demo.res.ch:8080/` to `etc\hosts` and then you type:
--  `demo.res.ch:8080/api/cards/` : to access to the credit cards list.
+- `demo.res.ch:8080/api/cards/` : to access to the credit cards list.
 - `demo.res.ch:8080` : to access to the website.
+
+## Step 4: AJAX requests with JQuery
+We used **JQuery library** to implement an **AJAX request**.
+
+First, we modified the Dockerfile of `apache-php-image`.
+```dockerfile
+FROM php:7.0-apache
+RUN apt-get update && apt-get install -y vim
+COPY src/ /var/www/html/
+```
+`RUN apt-get update && apt-get install -y vim` : install automatically Vim 
+
+You can build three images we had created previously by:
+```build
+docker run -d --name apache_static res/apache_php
+docker run -d --name express_dynamic res/express_students
+docker run -d -p 8080:80 --name apache_rp res/apache_rp
+```
+
+we can get their IP addresses by :
+
+```IP addresses
+docker inspect apache_static | grep -i ipaddress 
+docker inspect express_dynamic | grep -i ipaddress 
+```
+Second, we modified our `index.html` by using the following commands:
+```modifing index.html
+docker exec -it apache_static /bin/bash
+cp index.html index.html.orig
+vi index.html
+cd js
+touch creditcards.js
+vi creditcards.js
+```
+The new application will offers us to change the credit cards automatically every two seconds.
+
+To test the new application feature, you can type :
+```new feature
+docker build -t res/apache_php .
+docker kill apache_static
+docker rm apache_static
+docker run -d --name apache_static res/apache_php
+```
+You can test the new feature, you can use your favorite browser to see the page by looking for `demo.res.ch:8080`
