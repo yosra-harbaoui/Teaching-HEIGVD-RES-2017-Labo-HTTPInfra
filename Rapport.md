@@ -1,6 +1,6 @@
 # Teaching-HEIGVD-RES-2017-Labo-HTTPInfra Report
 
-Yosra Harbaoui
+Yosra Harbaoui  
 June, 2017
 
 ## Introduction
@@ -81,12 +81,75 @@ GET / HTTP/1.0
 ```
 However, you can access to the application from your local host.  
 
-2.  You can type 
+2.  You can type:
 ```run with mapping
 docker run -p 9090:3000 res/express_students
 ```
 And then, you can use your favorite browser to see the page by looking for `[IP address]:9090` (and refresh).
 
+## Step 3: Reverse proxy with apache (static configuration)
+We configured an Apache server as a reverse proxy to be used as a unique entrance to both of the containers we created in steps 1 and 2.  
+first, we run ower two container `apache_static` and `express_student` by giving each one a name. 
+```run containers
+docker run -d --name apache_static res/apache_php
+docker run -d --name express_dynamic res/express_students
+```
+we can get their IP addresses by :
 
+```IP addresses
+docker inspect apache_static | grep -i ipaddress 
+docker inspect express_dynamic | grep -i ipaddress 
+```
+Second, you can access to the container's filesystem by :
+```filesystem
+docker run -it -p 8080:80 php:7.0-apache /bin/bash
+```
+and type the following commands:
+```commands
+cd /etc/apache2
+cd sites-available/
+cp 000-default.conf 001-reverse-proxy.conf
+apt-get update
+apt-get install vim
+vi 001-reverse-proxy.conf
+```
+Then, we will write the following lines inside `001-reverse-proxy.conf`:
+```001-reverse-proxy.conf
+<VirtualHost *:80>
+        ServerName demo.res.ch
 
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
 
+        ProxyPass "/api/students/" "http://172.17.0.3:3000/"
+        ProxyPassReverse "/api/students/" "http://172.17.0.3:3000/"
+
+        ProxyPass "/" "http://172.17.0.2:80/"
+        ProxyPassReverse "/" "http://172.17.0.2:80/"
+</VirtualHost>
+```
+
+And we will write the following lines inside  `000-default.conf`:
+```000-default.conf
+<VirtualHost *:80>
+</VirtualHost>
+```
+finally, you can type the follwing commands:
+```modules
+a2ensite 001*
+a2enmod proxy
+a2enmod proxy_http
+service apache2 restart
+service apache2 reload
+```
+
+for testing, you can lanch a **Shell** and type: 
+```telnet
+telnet [IP address] 8080
+GET / HTTP/1.0
+Host : demo.res.ch
+```
+
+If you want to use this on your browser, you have to add `127.0.0.1 demo.res.ch --> http://demo.res.ch:8080/` to `etc\hosts` and then you type:
+-  `demo.res.ch:8080/api/cards/` : to access to the credit cards list.
+- `demo.res.ch:8080` : to access to the website.
